@@ -48,7 +48,7 @@ mod private {
             self.window_id.set(pw.id());
         }
 
-        fn open(&self, files: &[gtk4::gio::File], _hint: &str) {
+        fn open(&self, files: &[gio::File], _hint: &str) {
             //let obj=self.obj();
             log::debug!("Dropped {files:?}");
         }
@@ -99,12 +99,20 @@ impl Gemini {
     }
 
     fn create_actions(&self) {
-        let actions = [gio::ActionEntryBuilder::new("about")
-            .activate(|app: &Self, _, _| {
-                let app = app.clone();
-                glib::spawn_future_local(async move { app.show_about().await });
-            })
-            .build()];
+        let actions = [
+            gio::ActionEntryBuilder::new("about")
+                .activate(|app: &Self, _, _| {
+                    let app = app.clone();
+                    glib::spawn_future_local(async move { app.show_about().await });
+                })
+                .build(),
+            gio::ActionEntryBuilder::new("open_file")
+                .activate(|app: &Self, _, _| {
+                    let app = app.clone();
+                    glib::spawn_future_local(async move { app.open_file().await });
+                })
+                .build(),
+        ];
 
         self.add_action_entries(actions);
     }
@@ -113,5 +121,9 @@ impl Gemini {
         let pw = self.window();
         let aw = about::window(&pw).await;
         aw.present();
+    }
+
+    async fn open_file(&self) {
+        log::info!("open file");
     }
 }

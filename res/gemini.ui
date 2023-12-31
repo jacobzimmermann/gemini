@@ -21,7 +21,10 @@
           </object>
         </child>
         <child>
-          <object class="GtkDrawingArea"/>
+          <object class="GtkDrawingArea" id="video_area">
+            <property name="hexpand">True</property>
+            <property name="vexpand">True</property>
+          </object>
         </child>
       </object>
     </property>
@@ -31,9 +34,17 @@
   </template>
   <object class="GtkDropTarget" id="drop_target"/>
   <menu id="app_menu_model">
-    <item>
-      <attribute name="action">app.about</attribute>
-      <attribute name="label">About Gemini</attribute>
-    </item>
+    <section>
+      <item>
+        <attribute name="action">app.open_file</attribute>
+        <attribute name="label">Open...</attribute>
+      </item>
+    </section>
+    <section>
+      <item>
+        <attribute name="action">app.about</attribute>
+        <attribute name="label">About Gemini</attribute>
+      </item>
+    </section>
   </menu>
 </interface>
