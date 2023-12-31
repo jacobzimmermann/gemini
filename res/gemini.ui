@@ -2,14 +2,23 @@
 <!-- Created with Cambalache 0.16.0 -->
 <interface>
   <!-- interface-name gemini.ui -->
-  <requires lib="gtk" version="4.6"/>
+  <requires lib="gio" version="2.0"/>
+  <requires lib="gtk" version="4.12"/>
   <requires lib="libadwaita" version="1.0"/>
   <template class="PlayerWindow" parent="AdwApplicationWindow">
     <property name="content">
       <object class="GtkBox">
         <property name="orientation">vertical</property>
         <child>
-          <object class="GtkHeaderBar"/>
+          <object class="GtkHeaderBar">
+            <child type="end">
+              <object class="GtkMenuButton" id="app_menu">
+                <property name="halign">end</property>
+                <property name="icon-name">open-menu-symbolic</property>
+                <property name="menu-model">app_menu_model</property>
+              </object>
+            </child>
+          </object>
         </child>
         <child>
           <object class="GtkDrawingArea"/>
@@ -20,4 +29,11 @@
     <property name="title">Gemini Player</property>
     <property name="width-request">640</property>
   </template>
+  <object class="GtkDropTarget" id="drop_target"/>
+  <menu id="app_menu_model">
+    <item>
+      <attribute name="action">app.about</attribute>
+      <attribute name="label">About Gemini</attribute>
+    </item>
+  </menu>
 </interface>

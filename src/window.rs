@@ -1,12 +1,19 @@
+use adw::prelude::*;
 use adw::subclass::prelude::*;
-use gtk4::{self, gio, glib};
+use glib_macros::clone;
+use gtk4::{self, gdk, gio, glib};
 
 mod private {
+    use gtk4::glib::StaticType;
+
     use super::*;
 
     #[derive(Default, gtk4::CompositeTemplate)]
     #[template(resource = "/net/jzimm/Gemini/gemini.ui")]
-    pub struct PlayerWindow;
+    pub struct PlayerWindow {
+        #[template_child]
+        drop_target: gtk4::TemplateChild<gtk4::DropTarget>,
+    }
 
     #[glib::object_subclass]
     impl ObjectSubclass for PlayerWindow {
@@ -26,6 +33,33 @@ mod private {
     impl ObjectImpl for PlayerWindow {
         fn constructed(&self) {
             self.parent_constructed();
+
+            let obj = self.obj();
+
+            self.drop_target.set_types(&[gdk::FileList::static_type()]);
+            self.drop_target.connect_accept(
+                clone!(@weak obj => @default-return false, move |_,_| {
+                    log::info!("accept");
+                    true
+                }),
+            );
+            self.drop_target.connect_drop(
+                clone!(@weak obj => @default-return false, move |_,value,_,_| {
+                    match value.get::<gdk::FileList>() {
+                        Ok(flist) => {
+                            obj.application().map(|app| {
+                                app.open(flist.files().as_slice(), "File list");
+                            });
+                            true
+                        },
+                        Err(err) => {
+                            log::error!("{err}");
+                            false
+                        }
+                    }
+                }),
+            );
+            obj.add_controller(self.drop_target.get());
         }
     }
 

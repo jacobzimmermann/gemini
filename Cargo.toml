@@ -7,6 +7,7 @@ edition = "2021"
 
 [dependencies]
 adw = { version = "0.5.3", package = "libadwaita", features = ["v1_4", "gtk_v4_10"] }
+glib-macros = "0.18.5"
 gtk4 = { version = "0.7.3", features = ["v4_10", "gnome_45"] }
 gvdb-macros = "0.1.11"
 log = "0.4.20"

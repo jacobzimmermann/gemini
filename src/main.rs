@@ -3,6 +3,7 @@ use gtk4::glib;
 use log;
 use simple_logger;
 
+mod about;
 mod app;
 mod res;
 mod window;

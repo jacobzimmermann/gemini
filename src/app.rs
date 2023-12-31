@@ -1,14 +1,25 @@
 use adw::prelude::*;
+use std::cell;
+
 use adw::subclass::prelude::*;
 use gtk4::{self, gio, glib};
+use log;
 
-use crate::{res, window};
+use crate::{about, res, window};
 
 mod private {
     use super::*;
 
     #[derive(Default)]
-    pub struct Gemini;
+    pub struct Gemini {
+        window_id: cell::Cell<u32>,
+    }
+
+    impl Gemini {
+        pub(super) fn window_id(&self) -> u32 {
+            self.window_id.get()
+        }
+    }
 
     #[glib::object_subclass]
     impl ObjectSubclass for Gemini {
@@ -19,8 +30,10 @@ mod private {
 
     impl ObjectImpl for Gemini {
         fn constructed(&self) {
-            //let obj=self.obj();
             self.parent_constructed();
+
+            let app = self.obj();
+            app.create_actions();
         }
     }
 
@@ -31,10 +44,13 @@ mod private {
             let pw = window::PlayerWindow::builder().application(app).build();
             app.add_window(&pw);
             pw.present();
+
+            self.window_id.set(pw.id());
         }
 
-        fn open(&self, files: &[gtk4::gio::File], hint: &str) {
+        fn open(&self, files: &[gtk4::gio::File], _hint: &str) {
             //let obj=self.obj();
+            log::debug!("Dropped {files:?}");
         }
     }
 
@@ -74,5 +90,28 @@ impl GeminiBuilder {
 impl Gemini {
     pub fn builder() -> GeminiBuilder {
         GeminiBuilder::new()
+    }
+
+    fn window(&self) -> window::PlayerWindow {
+        let win_id = self.imp().window_id();
+        let win = self.window_by_id(win_id).unwrap();
+        win.downcast::<window::PlayerWindow>().unwrap()
+    }
+
+    fn create_actions(&self) {
+        let actions = [gio::ActionEntryBuilder::new("about")
+            .activate(|app: &Self, _, _| {
+                let app = app.clone();
+                glib::spawn_future_local(async move { app.show_about().await });
+            })
+            .build()];
+
+        self.add_action_entries(actions);
+    }
+
+    async fn show_about(&self) {
+        let pw = self.window();
+        let aw = about::window(&pw).await;
+        aw.present();
     }
 }
