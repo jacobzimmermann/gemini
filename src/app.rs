@@ -124,6 +124,17 @@ impl Gemini {
     }
 
     async fn open_file(&self) {
-        log::info!("open file");
+        let pw = self.window();
+
+        let filepicker = gtk4::FileDialog::builder()
+            .title("Select video file")
+            .modal(true)
+            .build();
+        if let Ok(selected) = filepicker.open_future(Some(&pw)).await {
+            let uri = selected.uri();
+            log::debug!("Opening {uri}");
+        } else {
+            log::error!("File picker closed or file not readable");
+        }
     }
 }
