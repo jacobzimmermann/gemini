@@ -1,14 +1,23 @@
+use std::cell::RefCell;
+
 use adw::prelude::*;
 use adw::subclass::prelude::*;
 use glib_macros::clone;
-use gtk4::{self, gdk, gio, glib};
+use gst::prelude::*;
+use gtk4::{gdk, gio, glib};
 
 mod private {
     use super::*;
 
-    #[derive(Default, gtk4::CompositeTemplate)]
+    #[derive(Default, gtk4::CompositeTemplate, glib::Properties)]
+    #[properties(wrapper_type = super::PlayerWindow)]
     #[template(resource = "/gemini.ui")]
     pub struct PlayerWindow {
+        #[property(get, set)]
+        pub(super) uri: RefCell<glib::GString>,
+
+        pub(super) player: gst::Pipeline,
+
         #[template_child]
         drop_target: gtk4::TemplateChild<gtk4::DropTarget>,
 
@@ -27,22 +36,31 @@ mod private {
         }
 
         fn instance_init(obj: &glib::subclass::InitializingObject<Self>) {
-            obj.init_template();
+            obj.init_template()
         }
     }
 
+    #[glib::derived_properties]
     impl ObjectImpl for PlayerWindow {
         fn constructed(&self) {
             self.parent_constructed();
 
+            let audiosink = gst::ElementFactory::make("autoaudiosink")
+                .build()
+                .expect("Failed to create audio sink");
+            self.player.add_many([&audiosink]).unwrap();
+
             let pw = self.obj();
 
+            pw.connect_uri_notify(super::PlayerWindow::on_uri_change);
+
             self.drop_target.set_types(&[gio::File::static_type()]);
-            self.drop_target
-                .connect_accept(clone!(@weak pw => @default-return false, move |_, _| {
+            self.drop_target.connect_accept(
+                clone!(@weak pw => @default-return false, move |_, _| {
                     log::info!("accept drop");
                     true
-                }));
+                }),
+            );
             self.drop_target.connect_drop(
                 clone!(@weak pw => @default-return false, move |_, value, _, _| {
                     match value.get::<gdk::FileList>() {
@@ -104,5 +122,10 @@ impl<'a, A: glib::IsA<gtk4::Application>> PlayerWindowBuilder<'a, A> {
 impl PlayerWindow {
     pub fn builder<'a, A: glib::IsA<gtk4::Application>>() -> PlayerWindowBuilder<'a, A> {
         PlayerWindowBuilder::new()
+    }
+
+    fn on_uri_change(&self) {
+        let s_uri = self.uri();
+        log::debug!("Start playing {s_uri}");
     }
 }

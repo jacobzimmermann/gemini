@@ -1,8 +1,8 @@
-use adw::prelude::*;
 use std::cell;
 
+use adw::prelude::*;
 use adw::subclass::prelude::*;
-use gtk4::{self, gio, glib};
+use gtk4::{gio, glib};
 use log;
 
 use crate::{about, res, window};
@@ -72,6 +72,8 @@ impl GeminiBuilder {
     }
 
     pub fn build(self) -> Result<Gemini, glib::Error> {
+        gst::init()?;
+
         let gres = {
             let gb = glib::Bytes::from_static(res::RESOURCES);
             gio::Resource::from_data(&gb)
@@ -133,6 +135,7 @@ impl Gemini {
         if let Ok(selected) = filepicker.open_future(Some(&pw)).await {
             let uri = selected.uri();
             log::debug!("Opening {uri}");
+            self.window().set_uri(uri);
         } else {
             log::error!("File picker closed or file not readable");
         }
