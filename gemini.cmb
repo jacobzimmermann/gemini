@@ -28,7 +28,7 @@
 	(1,7,"GtkMenuButton","icon-name","open-menu-symbolic",None,None,None,None,None,None,None,None,None),
 	(1,7,"GtkMenuButton","menu-model","8",None,None,None,None,None,None,None,None,None),
 	(1,7,"GtkWidget","halign","end",None,None,None,None,None,None,None,None,None),
-	(1,11,"(item)","action","app.open_file",None,None,None,None,None,None,None,None,None),
+	(1,11,"(item)","action","app.pick_file",None,None,None,None,None,None,None,None,None),
 	(1,11,"(item)","label","Open...",None,None,None,None,None,None,None,None,None),
 	(1,13,"(item)","action","app.about",None,None,None,None,None,None,None,None,None),
 	(1,13,"(item)","label","About Gemini",None,None,None,None,None,None,None,None,None),

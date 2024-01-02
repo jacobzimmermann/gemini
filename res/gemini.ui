@@ -38,7 +38,7 @@
   <menu id="app_menu_model">
     <section>
       <item>
-        <attribute name="action">app.open_file</attribute>
+        <attribute name="action">app.pick_file</attribute>
         <attribute name="label">Open...</attribute>
       </item>
     </section>

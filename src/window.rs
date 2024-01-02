@@ -3,6 +3,7 @@ use std::cell::{OnceCell, RefCell};
 use adw::prelude::*;
 use adw::subclass::prelude::*;
 use glib_macros::clone;
+use gst::prelude::*;
 use gtk4::{gdk, gio, glib};
 
 mod private {
@@ -37,13 +38,30 @@ mod private {
                     .property::<Option<gdk::GLContext>>("gl-context")
                     .is_some()
                 {
+                    log::info!("Using GL");
                     gst::ElementFactory::make("glsinkbin")
                         .property("sink", &g4sink)
                         .build()
                         .expect("Failed to create GL sink")
                 } else {
-                    unimplemented!();
-                    g4sink
+                    log::info!("GL is not available");
+                    let sink = gst::Bin::default();
+                    let convert = gst::ElementFactory::make("videoconvert")
+                        .build()
+                        .expect("Failed to create video converter");
+                    sink.add_many([&convert, &g4sink])
+                        .expect("Failed to create video bin");
+                    convert
+                        .link(&g4sink)
+                        .expect("Failed to link converter to video sink");
+                    let cpad = convert
+                        .static_pad("sink")
+                        .expect("Video sink pad not found");
+                    let gpad =
+                        gst::GhostPad::with_target(&cpad).expect("Failed to create ghost pad");
+                    sink.add_pad(&gpad)
+                        .expect("Failed to add ghost pad to video bin");
+                    sink.upcast()
                 };
 
                 let renderer = gstplay::PlayVideoOverlayVideoRenderer::with_sink(&videosink);
@@ -152,7 +170,8 @@ impl PlayerWindow {
     fn on_uri_change(&self) {
         let s_uri = self.uri();
         log::info!("Start playing {s_uri}");
-        let imp = self.imp();
-        imp.get_player().play()
+        let player = self.imp().get_player();
+        player.set_video_track_enabled(true);
+        player.play();
     }
 }

@@ -119,10 +119,10 @@ impl Gemini {
                     glib::spawn_future_local(async move { app.show_about().await });
                 })
                 .build(),
-            gio::ActionEntryBuilder::new("open_file")
+            gio::ActionEntryBuilder::new("pick_file")
                 .activate(|app: &Self, _, _| {
                     let app = app.clone();
-                    glib::spawn_future_local(async move { app.open_file().await });
+                    glib::spawn_future_local(async move { app.on_pick_file().await });
                 })
                 .build(),
         ];
@@ -136,7 +136,7 @@ impl Gemini {
         aw.present();
     }
 
-    async fn open_file(&self) {
+    async fn on_pick_file(&self) {
         let pw = self.window();
 
         let filepicker = gtk4::FileDialog::builder()
