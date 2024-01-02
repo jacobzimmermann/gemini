@@ -1,9 +1,8 @@
-use std::cell::RefCell;
+use std::cell::{OnceCell, RefCell};
 
 use adw::prelude::*;
 use adw::subclass::prelude::*;
 use glib_macros::clone;
-use gst::prelude::*;
 use gtk4::{gdk, gio, glib};
 
 mod private {
@@ -14,15 +13,43 @@ mod private {
     #[template(resource = "/gemini.ui")]
     pub struct PlayerWindow {
         #[property(get, set)]
-        pub(super) uri: RefCell<glib::GString>,
+        uri: RefCell<glib::GString>,
 
-        pub(super) player: gst::Pipeline,
+        player: OnceCell<gstplay::Play>,
 
         #[template_child]
         drop_target: gtk4::TemplateChild<gtk4::DropTarget>,
 
         #[template_child]
-        video_area: gtk4::TemplateChild<gtk4::DrawingArea>,
+        video_area: gtk4::TemplateChild<gtk4::Picture>,
+    }
+
+    impl PlayerWindow {
+        pub(super) fn get_player(&self) -> &gstplay::Play {
+            self.player.get_or_init(|| {
+                let g4sink = gst::ElementFactory::make("gtk4paintablesink")
+                    .build()
+                    .expect("Failed to create video sink");
+                let paintable = g4sink.property::<gdk::Paintable>("paintable");
+                self.video_area.set_paintable(Some(&paintable));
+
+                let videosink = if paintable
+                    .property::<Option<gdk::GLContext>>("gl-context")
+                    .is_some()
+                {
+                    gst::ElementFactory::make("glsinkbin")
+                        .property("sink", &g4sink)
+                        .build()
+                        .expect("Failed to create GL sink")
+                } else {
+                    unimplemented!();
+                    g4sink
+                };
+
+                let renderer = gstplay::PlayVideoOverlayVideoRenderer::with_sink(&videosink);
+                gstplay::Play::new(Some(renderer))
+            })
+        }
     }
 
     #[glib::object_subclass]
@@ -44,14 +71,12 @@ mod private {
     impl ObjectImpl for PlayerWindow {
         fn constructed(&self) {
             self.parent_constructed();
-
-            let audiosink = gst::ElementFactory::make("autoaudiosink")
-                .build()
-                .expect("Failed to create audio sink");
-            self.player.add_many([&audiosink]).unwrap();
+            let player = self.get_player();
 
             let pw = self.obj();
-
+            pw.bind_property("uri", player, "uri")
+                .bidirectional()
+                .build();
             pw.connect_uri_notify(super::PlayerWindow::on_uri_change);
 
             self.drop_target.set_types(&[gio::File::static_type()]);
@@ -126,6 +151,8 @@ impl PlayerWindow {
 
     fn on_uri_change(&self) {
         let s_uri = self.uri();
-        log::debug!("Start playing {s_uri}");
+        log::info!("Start playing {s_uri}");
+        let imp = self.imp();
+        imp.get_player().play()
     }
 }

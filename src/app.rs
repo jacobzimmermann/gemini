@@ -64,6 +64,15 @@ glib::wrapper! {
         @implements gio::ActionGroup, gio::ActionMap;
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum InitError {
+    #[error("{0}")]
+    BoolError(#[from] glib::BoolError),
+
+    #[error("{0}")]
+    GLibError(#[from] glib::Error),
+}
+
 pub struct GeminiBuilder;
 
 impl GeminiBuilder {
@@ -71,14 +80,16 @@ impl GeminiBuilder {
         Self
     }
 
-    pub fn build(self) -> Result<Gemini, glib::Error> {
+    pub fn build(self) -> Result<Gemini, InitError> {
+        gtk4::init()?;
         gst::init()?;
 
-        let gres = {
+        gstgtk4::plugin_register_static()?;
+
+        gio::resources_register(&{
             let gb = glib::Bytes::from_static(res::RESOURCES);
             gio::Resource::from_data(&gb)
-        }?;
-        gio::resources_register(&gres);
+        }?);
 
         let app = glib::Object::builder()
             .property("application-id", res::APP_ID)
@@ -134,7 +145,7 @@ impl Gemini {
             .build();
         if let Ok(selected) = filepicker.open_future(Some(&pw)).await {
             let uri = selected.uri();
-            log::debug!("Opening {uri}");
+            log::debug!("Setting {uri}");
             self.window().set_uri(uri);
         } else {
             log::error!("File picker closed or file not readable");

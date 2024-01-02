@@ -8,7 +8,9 @@
   <template class="PlayerWindow" parent="AdwApplicationWindow">
     <property name="content">
       <object class="GtkBox">
+        <property name="hexpand">True</property>
         <property name="orientation">vertical</property>
+        <property name="vexpand">True</property>
         <child>
           <object class="GtkHeaderBar">
             <child type="end">
@@ -21,7 +23,7 @@
           </object>
         </child>
         <child>
-          <object class="GtkDrawingArea" id="video_area">
+          <object class="GtkPicture" id="video_area">
             <property name="hexpand">True</property>
             <property name="vexpand">True</property>
           </object>
