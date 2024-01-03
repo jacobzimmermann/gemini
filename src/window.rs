@@ -1,4 +1,4 @@
-use std::cell::{OnceCell, RefCell};
+use std::cell::{Cell, OnceCell, RefCell};
 
 use adw::prelude::*;
 use adw::subclass::prelude::*;
@@ -11,10 +11,13 @@ mod private {
 
     #[derive(Default, gtk4::CompositeTemplate, glib::Properties)]
     #[properties(wrapper_type = super::PlayerWindow)]
-    #[template(resource = "/gemini.ui")]
+    #[template(resource = "/player-window.ui")]
     pub struct PlayerWindow {
         #[property(get, set)]
         uri: RefCell<glib::GString>,
+
+        #[property(get, set)]
+        fullscreen: Cell<bool>,
 
         player: OnceCell<gstplay::Play>,
 
@@ -22,7 +25,13 @@ mod private {
         drop_target: gtk4::TemplateChild<gtk4::DropTarget>,
 
         #[template_child]
-        video_area: gtk4::TemplateChild<gtk4::Picture>,
+        video_area: gtk4::TemplateChild<gtk4::Overlay>,
+
+        #[template_child]
+        video_widget: gtk4::TemplateChild<gtk4::Picture>,
+
+        #[template_child]
+        fullscreen_button: gtk4::TemplateChild<gtk4::Button>,
     }
 
     impl PlayerWindow {
@@ -32,7 +41,7 @@ mod private {
                     .build()
                     .expect("Failed to create video sink");
                 let paintable = g4sink.property::<gdk::Paintable>("paintable");
-                self.video_area.set_paintable(Some(&paintable));
+                self.video_widget.set_paintable(Some(&paintable));
 
                 let videosink = if paintable
                     .property::<Option<gdk::GLContext>>("gl-context")
@@ -68,34 +77,9 @@ mod private {
                 gstplay::Play::new(Some(renderer))
             })
         }
-    }
 
-    #[glib::object_subclass]
-    impl ObjectSubclass for PlayerWindow {
-        const NAME: &'static str = "PlayerWindow";
-        type Type = super::PlayerWindow;
-        type ParentType = adw::ApplicationWindow;
-
-        fn class_init(klass: &mut Self::Class) {
-            Self::bind_template(klass);
-        }
-
-        fn instance_init(obj: &glib::subclass::InitializingObject<Self>) {
-            obj.init_template()
-        }
-    }
-
-    #[glib::derived_properties]
-    impl ObjectImpl for PlayerWindow {
-        fn constructed(&self) {
-            self.parent_constructed();
-            let player = self.get_player();
-
+        fn setup_dnd(&self) {
             let pw = self.obj();
-            pw.bind_property("uri", player, "uri")
-                .bidirectional()
-                .build();
-            pw.connect_uri_notify(super::PlayerWindow::on_uri_change);
 
             self.drop_target.set_types(&[gio::File::static_type()]);
             self.drop_target.connect_accept(
@@ -122,6 +106,40 @@ mod private {
             );
 
             self.video_area.get().add_controller(self.drop_target.get());
+        }
+    }
+
+    #[glib::object_subclass]
+    impl ObjectSubclass for PlayerWindow {
+        const NAME: &'static str = "PlayerWindow";
+        type Type = super::PlayerWindow;
+        type ParentType = adw::ApplicationWindow;
+
+        fn class_init(klass: &mut Self::Class) {
+            Self::bind_template(klass);
+
+            klass.install_property_action("win.toggle-fullscreen", "fullscreen");
+        }
+
+        fn instance_init(obj: &glib::subclass::InitializingObject<Self>) {
+            obj.init_template()
+        }
+    }
+
+    #[glib::derived_properties]
+    impl ObjectImpl for PlayerWindow {
+        fn constructed(&self) {
+            self.parent_constructed();
+
+            let player = self.get_player();
+            let pw = self.obj();
+            pw.bind_property("uri", player, "uri")
+                .bidirectional()
+                .build();
+            pw.connect_uri_notify(super::PlayerWindow::on_uri_change);
+            pw.connect_fullscreen_notify(super::PlayerWindow::on_toggle_fullscreen);
+
+            self.setup_dnd();
         }
     }
 
@@ -173,5 +191,10 @@ impl PlayerWindow {
         let player = self.imp().get_player();
         player.set_video_track_enabled(true);
         player.play();
+    }
+
+    fn on_toggle_fullscreen(&self) {
+        let fs = self.fullscreen();
+        self.set_fullscreened(fs)
     }
 }

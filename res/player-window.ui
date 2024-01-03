@@ -23,9 +23,24 @@
           </object>
         </child>
         <child>
-          <object class="GtkPicture" id="video_area">
+          <object class="GtkOverlay" id="video_area">
             <property name="hexpand">True</property>
             <property name="vexpand">True</property>
+            <child>
+              <object class="GtkPicture" id="video_widget">
+                <property name="hexpand">True</property>
+                <property name="vexpand">True</property>
+              </object>
+            </child>
+            <child type="overlay">
+              <object class="GtkButton" id="fullscreen_button">
+                <property name="action-name">win.toggle-fullscreen</property>
+                <property name="halign">end</property>
+                <property name="has-frame">False</property>
+                <property name="icon-name">view-fullscreen-symbolic</property>
+                <property name="valign">start</property>
+              </object>
+            </child>
           </object>
         </child>
       </object>
