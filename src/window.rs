@@ -21,6 +21,7 @@ mod private {
         fullscreen: Cell<bool>,
 
         player: OnceCell<gstplay::Play>,
+        timeout_src_id: Cell<Option<glib::SourceId>>,
 
         #[template_child]
         drop_target: gtk4::TemplateChild<gtk4::DropTarget>,
@@ -78,21 +79,30 @@ mod private {
                 };
 
                 let renderer = gstplay::PlayVideoOverlayVideoRenderer::with_sink(&videosink);
-                let player = gstplay::Play::new(Some(renderer));
-
-                glib::timeout_add_local(Duration::from_millis(500), {
-                    let label = self.clock_label.get();
-                    let pipeline = player.pipeline();
-                    move || {
-                        pipeline
-                            .query_position::<gst::ClockTime>()
-                            .map(|pos| label.set_text(&format!("{:.0}", pos.display())));
-                        glib::ControlFlow::Continue
-                    }
-                });
-
-                player
+                gstplay::Play::new(Some(renderer))
             })
+        }
+
+        pub(super) fn start_updating_label(&self) {
+            self.stop_updating_label();
+
+            let src_id = glib::timeout_add_local(Duration::from_millis(500), {
+                let label = self.clock_label.get();
+                let pipeline = self.get_player().pipeline();
+                move || {
+                    pipeline
+                        .query_position::<gst::ClockTime>()
+                        .map(|pos| label.set_text(&format!("{:.0}", pos.display())));
+                    glib::ControlFlow::Continue
+                }
+            });
+            self.timeout_src_id.set(Some(src_id));
+        }
+
+        pub(super) fn stop_updating_label(&self) {
+            if let Some(src_id) = self.timeout_src_id.replace(None) {
+                src_id.remove();
+            }
         }
 
         fn setup_dnd(&self) {
@@ -136,6 +146,12 @@ mod private {
             Self::bind_template(klass);
 
             klass.install_property_action("win.toggle-fullscreen", "fullscreen");
+            klass.install_action("win.play", None, |obj, _, _| {
+                obj.play();
+            });
+            klass.install_action("win.stop", None, |obj, _, _| {
+                obj.stop();
+            });
         }
 
         fn instance_init(obj: &glib::subclass::InitializingObject<Self>) {
@@ -207,7 +223,7 @@ impl PlayerWindow {
         log::info!("Start playing {s_uri}");
         let player = self.imp().get_player();
         player.set_video_track_enabled(true);
-        player.play();
+        self.play();
     }
 
     fn on_toggle_fullscreen(&self) {
@@ -218,5 +234,17 @@ impl PlayerWindow {
             log::debug!("Exiting fullscreen")
         };
         self.set_fullscreened(fs)
+    }
+
+    fn play(&self) {
+        log::debug!("play");
+        self.imp().get_player().play();
+        self.imp().start_updating_label();
+    }
+
+    fn stop(&self) {
+        log::debug!("stop");
+        self.imp().get_player().stop();
+        self.imp().stop_updating_label();
     }
 }
