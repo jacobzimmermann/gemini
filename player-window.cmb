@@ -18,7 +18,12 @@
 	(1,15,"GtkOverlay","video_area",2,None,None,None,2,None),
 	(1,16,"GtkPicture","video_widget",15,None,None,None,-1,None),
 	(1,17,"GtkButton","fullscreen_button",15,None,"overlay",None,-1,None),
-	(1,18,"GtkLabel","clock_label",15,None,"overlay",None,-1,None)
+	(1,18,"GtkLabel","clock_label",15,None,"overlay",None,-1,None),
+	(1,19,"GtkCenterBox","player_controls",15,None,"overlay",None,-1,None),
+	(1,20,"GtkBox",None,19,None,"center",None,-1,None),
+	(1,21,"GtkButton","previous_button",20,None,None,None,None,None),
+	(1,22,"GtkButton","next_button",20,None,None,None,2,None),
+	(1,23,"GtkButton","play_pause_button",20,None,None,None,1,None)
   </object>
   <object_property>
 	(1,1,"AdwApplicationWindow","content",None,None,None,None,None,2,None,None,None,None),
@@ -45,6 +50,19 @@
 	(1,17,"GtkWidget","halign","end",None,None,None,None,None,None,None,None,None),
 	(1,17,"GtkWidget","valign","start",None,None,None,None,None,None,None,None,None),
 	(1,18,"GtkWidget","halign","start",None,None,None,None,None,None,None,None,None),
-	(1,18,"GtkWidget","valign","start",None,None,None,None,None,None,None,None,None)
+	(1,18,"GtkWidget","valign","start",None,None,None,None,None,None,None,None,None),
+	(1,19,"GtkWidget","valign","end",None,None,None,None,None,None,None,None,None),
+	(1,20,"GtkWidget","hexpand","True",None,None,None,None,None,None,None,None,None),
+	(1,20,"GtkWidget","vexpand","True",None,None,None,None,None,None,None,None,None),
+	(1,21,"GtkActionable","action-name","win.previous",None,None,None,None,None,None,None,None,None),
+	(1,21,"GtkButton","icon-name","media-skip-backward-symbolic",None,None,None,None,None,None,None,None,None),
+	(1,21,"GtkWidget","halign","start",None,None,None,None,None,None,None,None,None),
+	(1,21,"GtkWidget","valign","end",None,None,None,None,None,None,None,None,None),
+	(1,22,"GtkActionable","action-name","win.next",None,None,None,None,None,None,None,None,None),
+	(1,22,"GtkButton","icon-name","media-skip-forward-symbolic",None,None,None,None,None,None,None,None,None),
+	(1,22,"GtkWidget","halign","start",None,None,None,None,None,None,None,None,None),
+	(1,23,"GtkActionable","action-name","win.toggle-playing",None,None,None,None,None,None,None,None,None),
+	(1,23,"GtkButton","icon-name","media-playback-play-pause-symbolic",None,None,None,None,None,None,None,None,None),
+	(1,23,"GtkWidget","halign","start",None,None,None,None,None,None,None,None,None)
   </object_property>
 </cambalache-project>

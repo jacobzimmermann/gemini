@@ -20,6 +20,9 @@ mod private {
         #[property(get, set)]
         fullscreen: Cell<bool>,
 
+        #[property(get, set)]
+        playing: Cell<bool>,
+
         player: OnceCell<gstplay::Play>,
         timeout_src_id: Cell<Option<glib::SourceId>>,
 
@@ -147,11 +150,18 @@ mod private {
 
             klass.install_property_action("win.toggle-fullscreen", "fullscreen");
             klass.install_action("win.play", None, |obj, _, _| {
-                obj.play();
+                obj.set_playing(true);
             });
             klass.install_action("win.stop", None, |obj, _, _| {
-                obj.stop();
+                obj.set_playing(false);
             });
+            klass.install_action("win.previous", None, |obj, _, _| {
+                obj.on_previous();
+            });
+            klass.install_action("win.next", None, |obj, _, _| {
+                obj.on_next();
+            });
+            klass.install_property_action("win.toggle-playing", "playing");
         }
 
         fn instance_init(obj: &glib::subclass::InitializingObject<Self>) {
@@ -171,7 +181,7 @@ mod private {
                 .build();
             pw.connect_uri_notify(super::PlayerWindow::on_uri_change);
             pw.connect_fullscreen_notify(super::PlayerWindow::on_toggle_fullscreen);
-
+            pw.connect_playing_notify(super::PlayerWindow::on_toggle_playing);
             self.setup_dnd();
         }
     }
@@ -219,11 +229,12 @@ impl PlayerWindow {
     }
 
     fn on_uri_change(&self) {
+        self.set_playing(false);
         let s_uri = self.uri();
         log::info!("Start playing {s_uri}");
         let player = self.imp().get_player();
         player.set_video_track_enabled(true);
-        self.play();
+        self.set_playing(true);
     }
 
     fn on_toggle_fullscreen(&self) {
@@ -236,15 +247,25 @@ impl PlayerWindow {
         self.set_fullscreened(fs)
     }
 
-    fn play(&self) {
-        log::debug!("play");
-        self.imp().get_player().play();
-        self.imp().start_updating_label();
+    fn on_toggle_playing(&self) {
+        if self.playing() {
+            log::debug!("Play");
+            let imp = self.imp();
+            imp.get_player().play();
+            imp.start_updating_label();
+        } else {
+            log::debug!("Stop");
+            let imp = self.imp();
+            imp.stop_updating_label();
+            imp.get_player().stop();
+        }
     }
 
-    fn stop(&self) {
-        log::debug!("stop");
-        self.imp().get_player().stop();
-        self.imp().stop_updating_label();
+    fn on_previous(&self) {
+        log::debug!("go to previous chapter");
+    }
+
+    fn on_next(&self) {
+        log::debug!("go to next chapter");
     }
 }
