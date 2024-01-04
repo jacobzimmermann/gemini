@@ -1,4 +1,5 @@
 use std::cell::{Cell, OnceCell, RefCell};
+use std::time::Duration;
 
 use adw::prelude::*;
 use adw::subclass::prelude::*;
@@ -32,6 +33,9 @@ mod private {
 
         #[template_child]
         fullscreen_button: gtk4::TemplateChild<gtk4::Button>,
+
+        #[template_child]
+        clock_label: gtk4::TemplateChild<gtk4::Label>,
     }
 
     impl PlayerWindow {
@@ -74,7 +78,20 @@ mod private {
                 };
 
                 let renderer = gstplay::PlayVideoOverlayVideoRenderer::with_sink(&videosink);
-                gstplay::Play::new(Some(renderer))
+                let player = gstplay::Play::new(Some(renderer));
+
+                glib::timeout_add_local(Duration::from_millis(500), {
+                    let label = self.clock_label.get();
+                    let pipeline = player.pipeline();
+                    move || {
+                        pipeline
+                            .query_position::<gst::ClockTime>()
+                            .map(|pos| label.set_text(&format!("{:.0}", pos.display())));
+                        glib::ControlFlow::Continue
+                    }
+                });
+
+                player
             })
         }
 
@@ -195,6 +212,11 @@ impl PlayerWindow {
 
     fn on_toggle_fullscreen(&self) {
         let fs = self.fullscreen();
+        if fs {
+            log::debug!("Going fullscreen")
+        } else {
+            log::debug!("Exiting fullscreen")
+        };
         self.set_fullscreened(fs)
     }
 }

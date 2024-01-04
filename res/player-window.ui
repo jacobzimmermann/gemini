@@ -41,6 +41,12 @@
                 <property name="valign">start</property>
               </object>
             </child>
+            <child type="overlay">
+              <object class="GtkLabel" id="clock_label">
+                <property name="halign">start</property>
+                <property name="valign">start</property>
+              </object>
+            </child>
           </object>
         </child>
       </object>

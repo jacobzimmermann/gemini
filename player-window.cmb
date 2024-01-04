@@ -17,7 +17,8 @@
 	(1,13,"(item)","app.about",12,None,None,None,-1,None),
 	(1,15,"GtkOverlay","video_area",2,None,None,None,2,None),
 	(1,16,"GtkPicture","video_widget",15,None,None,None,-1,None),
-	(1,17,"GtkButton","fullscreen_button",15,None,"overlay",None,-1,None)
+	(1,17,"GtkButton","fullscreen_button",15,None,"overlay",None,-1,None),
+	(1,18,"GtkLabel","clock_label",15,None,"overlay",None,-1,None)
   </object>
   <object_property>
 	(1,1,"AdwApplicationWindow","content",None,None,None,None,None,2,None,None,None,None),
@@ -38,10 +39,12 @@
 	(1,15,"GtkWidget","vexpand","True",None,None,None,None,None,None,None,None,None),
 	(1,16,"GtkWidget","hexpand","True",None,None,None,None,None,None,None,None,None),
 	(1,16,"GtkWidget","vexpand","True",None,None,None,None,None,None,None,None,None),
-	(1,17,"GtkActionable","action-name","win.fullscreen",None,None,None,None,None,None,None,None,None),
+	(1,17,"GtkActionable","action-name","win.toggle-fullscreen",None,None,None,None,None,None,None,None,None),
 	(1,17,"GtkButton","has-frame","False",None,None,None,None,None,None,None,None,None),
 	(1,17,"GtkButton","icon-name","view-fullscreen-symbolic",None,None,None,None,None,None,None,None,None),
 	(1,17,"GtkWidget","halign","end",None,None,None,None,None,None,None,None,None),
-	(1,17,"GtkWidget","valign","start",None,None,None,None,None,None,None,None,None)
+	(1,17,"GtkWidget","valign","start",None,None,None,None,None,None,None,None,None),
+	(1,18,"GtkWidget","halign","start",None,None,None,None,None,None,None,None,None),
+	(1,18,"GtkWidget","valign","start",None,None,None,None,None,None,None,None,None)
   </object_property>
 </cambalache-project>
