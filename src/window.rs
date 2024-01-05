@@ -10,6 +10,21 @@ use gtk4::{gdk, gio, glib};
 mod private {
     use super::*;
 
+    pub(super) enum PlayPauseIcon {
+        Paused,
+        Playing,
+    }
+
+    impl Into<&'static str> for PlayPauseIcon {
+        fn into(self) -> &'static str {
+            use PlayPauseIcon::*;
+            match self {
+                Paused => "media-playback-start-symbolic",
+                Playing => "media-playback-pause-symbolic",
+            }
+        }
+    }
+
     #[derive(Default, gtk4::CompositeTemplate, glib::Properties)]
     #[properties(wrapper_type = super::PlayerWindow)]
     #[template(resource = "/player-window.ui")]
@@ -40,6 +55,15 @@ mod private {
 
         #[template_child]
         clock_label: gtk4::TemplateChild<gtk4::Label>,
+
+        #[template_child]
+        previous_button: gtk4::TemplateChild<gtk4::Button>,
+
+        #[template_child]
+        next_button: gtk4::TemplateChild<gtk4::Button>,
+
+        #[template_child]
+        play_pause_button: gtk4::TemplateChild<gtk4::Button>,
     }
 
     impl PlayerWindow {
@@ -137,6 +161,20 @@ mod private {
 
             self.video_area.get().add_controller(self.drop_target.get());
         }
+
+        pub(super) fn enable_controls(&self, enabled: bool) {
+            for but in [
+                &self.next_button,
+                &self.previous_button,
+                &self.play_pause_button,
+            ] {
+                but.get().set_sensitive(enabled);
+            }
+        }
+
+        pub(super) fn set_pause_play_icon(&self, icon: PlayPauseIcon) {
+            self.play_pause_button.set_icon_name(icon.into());
+        }
     }
 
     #[glib::object_subclass]
@@ -183,6 +221,7 @@ mod private {
             pw.connect_fullscreen_notify(super::PlayerWindow::on_toggle_fullscreen);
             pw.connect_playing_notify(super::PlayerWindow::on_toggle_playing);
             self.setup_dnd();
+            self.enable_controls(false);
         }
     }
 
@@ -230,6 +269,7 @@ impl PlayerWindow {
 
     fn on_uri_change(&self) {
         self.set_playing(false);
+        self.imp().enable_controls(false);
         let s_uri = self.uri();
         log::info!("Start playing {s_uri}");
         let player = self.imp().get_player();
@@ -248,16 +288,30 @@ impl PlayerWindow {
     }
 
     fn on_toggle_playing(&self) {
+        use private::PlayPauseIcon;
+
         if self.playing() {
             log::debug!("Play");
             let imp = self.imp();
-            imp.get_player().play();
+            let player = imp.get_player();
+            player.play();
+            /*if player.media_info().is_some() {
+                imp.start_updating_label();
+                imp.set_pause_play_icon(PlayPauseIcon::Playing);
+                imp.enable_controls(true);
+            } else {
+                self.set_playing(false);
+                imp.enable_controls(false);
+            }*/
             imp.start_updating_label();
+            imp.set_pause_play_icon(PlayPauseIcon::Playing);
+            imp.enable_controls(true);
         } else {
             log::debug!("Stop");
             let imp = self.imp();
             imp.stop_updating_label();
-            imp.get_player().stop();
+            imp.get_player().pause();
+            imp.set_pause_play_icon(PlayPauseIcon::Paused);
         }
     }
 
