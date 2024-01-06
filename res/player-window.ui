@@ -49,10 +49,16 @@
             </child>
             <child type="overlay">
               <object class="GtkCenterBox" id="player_controls">
+                <property name="margin-bottom">4</property>
+                <property name="margin-end">4</property>
+                <property name="margin-start">4</property>
                 <property name="valign">end</property>
                 <child type="center">
                   <object class="GtkBox">
                     <property name="hexpand">True</property>
+                    <property name="hexpand-set">True</property>
+                    <property name="spacing">4</property>
+                    <property name="valign">end</property>
                     <property name="vexpand">True</property>
                     <child>
                       <object class="GtkButton" id="previous_button">
@@ -74,6 +80,13 @@
                         <property name="action-name">win.next</property>
                         <property name="halign">start</property>
                         <property name="icon-name">media-skip-forward-symbolic</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkScale" id="video_slider">
+                        <property name="hexpand">True</property>
+                        <property name="hexpand-set">True</property>
+                        <property name="valign">end</property>
                       </object>
                     </child>
                   </object>

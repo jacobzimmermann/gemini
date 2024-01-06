@@ -8,6 +8,8 @@ use gst::prelude::*;
 use gtk4::{gdk, gio, glib};
 
 mod private {
+    use crate::app;
+
     use super::*;
 
     pub(super) enum PlayPauseIcon {
@@ -64,6 +66,9 @@ mod private {
 
         #[template_child]
         play_pause_button: gtk4::TemplateChild<gtk4::Button>,
+
+        #[template_child]
+        video_slider: gtk4::TemplateChild<gtk4::Scale>,
     }
 
     impl PlayerWindow {
@@ -164,11 +169,12 @@ mod private {
 
         pub(super) fn enable_controls(&self, enabled: bool) {
             for but in [
-                &self.next_button,
-                &self.previous_button,
-                &self.play_pause_button,
+                self.next_button.get().upcast::<gtk4::Widget>(),
+                self.previous_button.get().upcast(),
+                self.play_pause_button.get().upcast(),
+                self.video_slider.get().upcast(),
             ] {
-                but.get().set_sensitive(enabled);
+                but.set_sensitive(enabled);
             }
         }
 
@@ -220,8 +226,17 @@ mod private {
             pw.connect_uri_notify(super::PlayerWindow::on_uri_change);
             pw.connect_fullscreen_notify(super::PlayerWindow::on_toggle_fullscreen);
             pw.connect_playing_notify(super::PlayerWindow::on_toggle_playing);
+
             self.setup_dnd();
             self.enable_controls(false);
+
+            self.video_slider.set_range(0.0, 100.0);
+            self.video_slider.set_value(0.0);
+            self.video_slider.connect_change_value(
+                clone!(@weak pw => @default-return glib::Propagation::Stop, move |_,_,val| {
+                        pw.on_slider_change_value(val);
+                        glib::Propagation::Proceed }),
+            );
         }
     }
 
@@ -295,6 +310,7 @@ impl PlayerWindow {
             let imp = self.imp();
             let player = imp.get_player();
             player.play();
+
             /*if player.media_info().is_some() {
                 imp.start_updating_label();
                 imp.set_pause_play_icon(PlayPauseIcon::Playing);
@@ -321,5 +337,13 @@ impl PlayerWindow {
 
     fn on_next(&self) {
         log::debug!("go to next chapter");
+    }
+
+    fn on_slider_change_value(&self, val: f64) {
+        log::debug!("slider");
+    }
+
+    fn on_media_info_updated(&self) {
+        log::debug!("mi");
     }
 }

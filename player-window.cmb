@@ -23,7 +23,8 @@
 	(1,20,"GtkBox",None,19,None,"center",None,-1,None),
 	(1,21,"GtkButton","previous_button",20,None,None,None,None,None),
 	(1,22,"GtkButton","next_button",20,None,None,None,2,None),
-	(1,23,"GtkButton","play_pause_button",20,None,None,None,1,None)
+	(1,23,"GtkButton","play_pause_button",20,None,None,None,1,None),
+	(1,24,"GtkScale","video_slider",20,None,None,None,3,None)
   </object>
   <object_property>
 	(1,1,"AdwApplicationWindow","content",None,None,None,None,None,2,None,None,None,None),
@@ -51,8 +52,14 @@
 	(1,17,"GtkWidget","valign","start",None,None,None,None,None,None,None,None,None),
 	(1,18,"GtkWidget","halign","start",None,None,None,None,None,None,None,None,None),
 	(1,18,"GtkWidget","valign","start",None,None,None,None,None,None,None,None,None),
+	(1,19,"GtkWidget","margin-bottom","4",None,None,None,None,None,None,None,None,None),
+	(1,19,"GtkWidget","margin-end","4",None,None,None,None,None,None,None,None,None),
+	(1,19,"GtkWidget","margin-start","4",None,None,None,None,None,None,None,None,None),
 	(1,19,"GtkWidget","valign","end",None,None,None,None,None,None,None,None,None),
+	(1,20,"GtkBox","spacing","4",None,None,None,None,None,None,None,None,None),
 	(1,20,"GtkWidget","hexpand","True",None,None,None,None,None,None,None,None,None),
+	(1,20,"GtkWidget","hexpand-set","True",None,None,None,None,None,None,None,None,None),
+	(1,20,"GtkWidget","valign","end",None,None,None,None,None,None,None,None,None),
 	(1,20,"GtkWidget","vexpand","True",None,None,None,None,None,None,None,None,None),
 	(1,21,"GtkActionable","action-name","win.previous",None,None,None,None,None,None,None,None,None),
 	(1,21,"GtkButton","icon-name","media-skip-backward-symbolic",None,None,None,None,None,None,None,None,None),
@@ -63,6 +70,9 @@
 	(1,22,"GtkWidget","halign","start",None,None,None,None,None,None,None,None,None),
 	(1,23,"GtkActionable","action-name","win.toggle-playing",None,None,None,None,None,None,None,None,None),
 	(1,23,"GtkButton","icon-name","media-playback-play-pause-symbolic",None,None,None,None,None,None,None,None,None),
-	(1,23,"GtkWidget","halign","start",None,None,None,None,None,None,None,None,None)
+	(1,23,"GtkWidget","halign","start",None,None,None,None,None,None,None,None,None),
+	(1,24,"GtkWidget","hexpand","True",None,None,None,None,None,None,None,None,None),
+	(1,24,"GtkWidget","hexpand-set","True",None,None,None,None,None,None,None,None,None),
+	(1,24,"GtkWidget","valign","end",None,None,None,None,None,None,None,None,None)
   </object_property>
 </cambalache-project>

@@ -105,7 +105,7 @@ impl Gemini {
         GeminiBuilder::new()
     }
 
-    fn window(&self) -> window::PlayerWindow {
+    pub fn window(&self) -> window::PlayerWindow {
         let win_id = self.imp().window_id();
         let win = self.window_by_id(win_id).unwrap();
         win.downcast::<window::PlayerWindow>().unwrap()
