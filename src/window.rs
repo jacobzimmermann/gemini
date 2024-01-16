@@ -8,7 +8,7 @@ use gst::prelude::*;
 use gtk4::{gdk, gio, glib};
 
 mod private {
-    use crate::app;
+    use gst::message::DurationChanged;
 
     use super::*;
 
@@ -76,7 +76,7 @@ mod private {
             self.player.get_or_init(|| {
                 let g4sink = gst::ElementFactory::make("gtk4paintablesink")
                     .build()
-                    .expect("Failed to create video sink");
+                    .expect("The video sink creation must succeed");
                 let paintable = g4sink.property::<gdk::Paintable>("paintable");
                 self.video_widget.set_paintable(Some(&paintable));
 
@@ -88,25 +88,25 @@ mod private {
                     gst::ElementFactory::make("glsinkbin")
                         .property("sink", &g4sink)
                         .build()
-                        .expect("Failed to create GL sink")
+                        .expect("GL sink creation must succeed")
                 } else {
                     log::info!("GL is not available");
                     let sink = gst::Bin::default();
                     let convert = gst::ElementFactory::make("videoconvert")
                         .build()
-                        .expect("Failed to create video converter");
+                        .expect("Video converter creation must succeed");
                     sink.add_many([&convert, &g4sink])
-                        .expect("Failed to create video bin");
+                        .expect("Video bin creation must succeed");
                     convert
                         .link(&g4sink)
-                        .expect("Failed to link converter to video sink");
+                        .expect("Converter must link to video sink");
                     let cpad = convert
                         .static_pad("sink")
-                        .expect("Video sink pad not found");
+                        .expect("Video sink pad must exist");
                     let gpad =
-                        gst::GhostPad::with_target(&cpad).expect("Failed to create ghost pad");
+                        gst::GhostPad::with_target(&cpad).expect("Ghost pad creation must succeed");
                     sink.add_pad(&gpad)
-                        .expect("Failed to add ghost pad to video bin");
+                        .expect("Ghost pad must be added to video bin");
                     sink.upcast()
                 };
 
@@ -165,6 +165,36 @@ mod private {
             );
 
             self.video_area.get().add_controller(self.drop_target.get());
+        }
+
+        fn setup_player_message_bus(&self) {
+            let player = self.get_player();
+            let pw = self.obj();
+
+            let (sender, receiver) = async_channel::bounded(1);
+
+            glib::spawn_future_local(clone!(@weak pw => async move {
+                while let Ok(minfo) = receiver.recv().await {
+                    pw.on_media_info_updated(&minfo);
+                }
+            }));
+
+            player.message_bus().add_signal_watch();
+            player.message_bus().connect_message(None, {
+                move |_bus, msg| {
+                    use gst::MessageView::*;
+                    use gstplay::PlayMessage;
+                    match msg.view() {
+                        Application(_) => match gstplay::PlayMessage::parse(msg).unwrap() {
+                            PlayMessage::MediaInfoUpdated { info } => sender
+                                .send_blocking(info)
+                                .expect("The async channel must be open"),
+                            _ => (),
+                        },
+                        _ => (),
+                    }
+                }
+            });
         }
 
         pub(super) fn enable_controls(&self, enabled: bool) {
@@ -229,6 +259,7 @@ mod private {
 
             self.setup_dnd();
             self.enable_controls(false);
+            self.setup_player_message_bus();
 
             self.video_slider.set_range(0.0, 100.0);
             self.video_slider.set_value(0.0);
@@ -343,7 +374,8 @@ impl PlayerWindow {
         log::debug!("slider");
     }
 
-    fn on_media_info_updated(&self) {
-        log::debug!("mi");
+    fn on_media_info_updated(&self, minfo: &gstplay::PlayMediaInfo) {
+        let duration = minfo.duration();
+        log::debug!("mi duration = {duration:?}");
     }
 }

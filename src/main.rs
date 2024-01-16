@@ -9,7 +9,7 @@ mod res;
 mod window;
 
 fn main() -> glib::ExitCode {
-    simple_logger::init_with_env().expect("Failed to initialise logger");
+    simple_logger::init_with_env().expect("Logger must initialise");
 
     match app::Gemini::builder().build() {
         Ok(app) => app.run(),

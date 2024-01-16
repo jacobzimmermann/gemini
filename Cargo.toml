@@ -7,6 +7,7 @@ edition = "2021"
 
 [dependencies]
 adw = { version = "0.5.3", package = "libadwaita", features = ["v1_4", "gtk_v4_10"] }
+async-channel = "2.1.1"
 glib-macros = "0.18.5"
 gst = { version = "0.21.3", package = "gstreamer", features = ["v1_22"] }
 gstgtk4 = { version = "0.11.3", package = "gst-plugin-gtk4", features = ["static", "wayland", "gst_gl_wayland", "x11egl", "gst_gl_x11"] }
