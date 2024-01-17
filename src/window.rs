@@ -8,8 +8,6 @@ use gst::prelude::*;
 use gtk4::{gdk, gio, glib};
 
 mod private {
-    use gst::message::DurationChanged;
-
     use super::*;
 
     pub(super) enum PlayPauseIcon {
@@ -25,6 +23,10 @@ mod private {
                 Playing => "media-playback-pause-symbolic",
             }
         }
+    }
+
+    pub(super) enum MInfoUpdateMessage {
+        Duration(Option<gst::ClockTime>),
     }
 
     #[derive(Default, gtk4::CompositeTemplate, glib::Properties)]
@@ -68,7 +70,7 @@ mod private {
         play_pause_button: gtk4::TemplateChild<gtk4::Button>,
 
         #[template_child]
-        video_slider: gtk4::TemplateChild<gtk4::Scale>,
+        pub(super) video_slider: gtk4::TemplateChild<gtk4::Scale>,
     }
 
     impl PlayerWindow {
@@ -174,8 +176,10 @@ mod private {
             let (sender, receiver) = async_channel::bounded(1);
 
             glib::spawn_future_local(clone!(@weak pw => async move {
-                while let Ok(minfo) = receiver.recv().await {
-                    pw.on_media_info_updated(&minfo);
+                while let Ok(msg) = receiver.recv().await {
+                    match msg {
+                        MInfoUpdateMessage::Duration(d) => pw.on_duration_updated(&d)
+                    }
                 }
             }));
 
@@ -186,8 +190,8 @@ mod private {
                     use gstplay::PlayMessage;
                     match msg.view() {
                         Application(_) => match gstplay::PlayMessage::parse(msg).unwrap() {
-                            PlayMessage::MediaInfoUpdated { info } => sender
-                                .send_blocking(info)
+                            PlayMessage::DurationChanged { duration } => sender
+                                .send_blocking(MInfoUpdateMessage::Duration(duration))
                                 .expect("The async channel must be open"),
                             _ => (),
                         },
@@ -261,8 +265,6 @@ mod private {
             self.enable_controls(false);
             self.setup_player_message_bus();
 
-            self.video_slider.set_range(0.0, 100.0);
-            self.video_slider.set_value(0.0);
             self.video_slider.connect_change_value(
                 clone!(@weak pw => @default-return glib::Propagation::Stop, move |_,_,val| {
                         pw.on_slider_change_value(val);
@@ -374,8 +376,10 @@ impl PlayerWindow {
         log::debug!("slider");
     }
 
-    fn on_media_info_updated(&self, minfo: &gstplay::PlayMediaInfo) {
-        let duration = minfo.duration();
-        log::debug!("mi duration = {duration:?}");
+    fn on_media_info_updated(&self, minfo: &gstplay::PlayMediaInfo) {}
+
+    fn on_duration_updated(&self, duration: &Option<gst::ClockTime>) {
+        let secs = duration.map(gst::ClockTime::seconds_f64).unwrap_or(0.0);
+        self.imp().video_slider.set_range(0.0, secs);
     }
 }
