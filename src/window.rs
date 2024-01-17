@@ -1,5 +1,4 @@
 use std::cell::{Cell, OnceCell, RefCell};
-use std::time::Duration;
 
 use adw::prelude::*;
 use adw::subclass::prelude::*;
@@ -27,6 +26,7 @@ mod private {
 
     pub(super) enum MInfoUpdateMessage {
         Duration(Option<gst::ClockTime>),
+        PositionUpdate(Option<gst::ClockTime>),
     }
 
     #[derive(Default, gtk4::CompositeTemplate, glib::Properties)]
@@ -43,7 +43,6 @@ mod private {
         playing: Cell<bool>,
 
         player: OnceCell<gstplay::Play>,
-        timeout_src_id: Cell<Option<glib::SourceId>>,
 
         #[template_child]
         drop_target: gtk4::TemplateChild<gtk4::DropTarget>,
@@ -58,7 +57,7 @@ mod private {
         fullscreen_button: gtk4::TemplateChild<gtk4::Button>,
 
         #[template_child]
-        clock_label: gtk4::TemplateChild<gtk4::Label>,
+        pub(super) clock_label: gtk4::TemplateChild<gtk4::Label>,
 
         #[template_child]
         previous_button: gtk4::TemplateChild<gtk4::Button>,
@@ -117,28 +116,6 @@ mod private {
             })
         }
 
-        pub(super) fn start_updating_label(&self) {
-            self.stop_updating_label();
-
-            let src_id = glib::timeout_add_local(Duration::from_millis(500), {
-                let label = self.clock_label.get();
-                let pipeline = self.get_player().pipeline();
-                move || {
-                    pipeline
-                        .query_position::<gst::ClockTime>()
-                        .map(|pos| label.set_text(&format!("{:.0}", pos.display())));
-                    glib::ControlFlow::Continue
-                }
-            });
-            self.timeout_src_id.set(Some(src_id));
-        }
-
-        pub(super) fn stop_updating_label(&self) {
-            if let Some(src_id) = self.timeout_src_id.replace(None) {
-                src_id.remove();
-            }
-        }
-
         fn setup_dnd(&self) {
             let pw = self.obj();
 
@@ -178,7 +155,8 @@ mod private {
             glib::spawn_future_local(clone!(@weak pw => async move {
                 while let Ok(msg) = receiver.recv().await {
                     match msg {
-                        MInfoUpdateMessage::Duration(d) => pw.on_duration_updated(&d)
+                        MInfoUpdateMessage::Duration(d) => pw.on_duration_updated(&d),
+                        MInfoUpdateMessage::PositionUpdate(p)=>pw.on_position_updated(&p)
                     }
                 }
             }));
@@ -192,6 +170,9 @@ mod private {
                         Application(_) => match gstplay::PlayMessage::parse(msg).unwrap() {
                             PlayMessage::DurationChanged { duration } => sender
                                 .send_blocking(MInfoUpdateMessage::Duration(duration))
+                                .expect("The async channel must be open"),
+                            PlayMessage::PositionUpdated { position } => sender
+                                .send_blocking(MInfoUpdateMessage::PositionUpdate(position))
                                 .expect("The async channel must be open"),
                             _ => (),
                         },
@@ -352,13 +333,11 @@ impl PlayerWindow {
                 self.set_playing(false);
                 imp.enable_controls(false);
             }*/
-            imp.start_updating_label();
             imp.set_pause_play_icon(PlayPauseIcon::Playing);
             imp.enable_controls(true);
         } else {
             log::debug!("Stop");
             let imp = self.imp();
-            imp.stop_updating_label();
             imp.get_player().pause();
             imp.set_pause_play_icon(PlayPauseIcon::Paused);
         }
@@ -373,10 +352,17 @@ impl PlayerWindow {
     }
 
     fn on_slider_change_value(&self, val: f64) {
-        log::debug!("slider");
+        log::debug!("slider {val}");
     }
 
-    fn on_media_info_updated(&self, minfo: &gstplay::PlayMediaInfo) {}
+    fn on_position_updated(&self, position: &Option<gst::ClockTime>) {
+        if let Some(p) = position {
+            self.imp().video_slider.set_value(p.seconds_f64());
+            self.imp()
+                .clock_label
+                .set_text(&format!("{:.0}", p.display()));
+        }
+    }
 
     fn on_duration_updated(&self, duration: &Option<gst::ClockTime>) {
         let secs = duration.map(gst::ClockTime::seconds_f64).unwrap_or(0.0);
