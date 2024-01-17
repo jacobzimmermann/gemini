@@ -57,7 +57,7 @@ mod private {
         fullscreen_button: gtk4::TemplateChild<gtk4::Button>,
 
         #[template_child]
-        pub(super) clock_label: gtk4::TemplateChild<gtk4::Label>,
+        clock_label: gtk4::TemplateChild<gtk4::Label>,
 
         #[template_child]
         previous_button: gtk4::TemplateChild<gtk4::Button>,
@@ -195,6 +195,10 @@ mod private {
 
         pub(super) fn set_pause_play_icon(&self, icon: PlayPauseIcon) {
             self.play_pause_button.set_icon_name(icon.into());
+        }
+
+        pub(super) fn update_clock_label(&self, clocktime: &gst::ClockTime) {
+            self.clock_label.set_text(&format!("{:.0}", clocktime.display()));
         }
     }
 
@@ -352,15 +356,16 @@ impl PlayerWindow {
     }
 
     fn on_slider_change_value(&self, val: f64) {
-        log::debug!("slider {val}");
+        let pos=gst::ClockTime::from_seconds_f64(val);
+        let player=self.imp().get_player();
+        self.imp().update_clock_label(&pos);
+        player.seek(pos);
     }
 
     fn on_position_updated(&self, position: &Option<gst::ClockTime>) {
         if let Some(p) = position {
             self.imp().video_slider.set_value(p.seconds_f64());
-            self.imp()
-                .clock_label
-                .set_text(&format!("{:.0}", p.display()));
+            self.imp().update_clock_label(p);
         }
     }
 
