@@ -24,11 +24,6 @@ mod private {
         }
     }
 
-    pub(super) enum MInfoUpdateMessage {
-        Duration(Option<gst::ClockTime>),
-        PositionUpdate(Option<gst::ClockTime>),
-    }
-
     #[derive(Default, gtk4::CompositeTemplate, glib::Properties)]
     #[properties(wrapper_type = super::PlayerWindow)]
     #[template(resource = "/player-window.ui")]
@@ -149,37 +144,25 @@ mod private {
         fn setup_player_message_bus(&self) {
             let player = self.get_player();
             let pw = self.obj();
-
-            let (sender, receiver) = async_channel::bounded(1);
+            let mut pstream = player
+                .message_bus()
+                .stream_filtered(&[gst::MessageType::Application]);
 
             glib::spawn_future_local(clone!(@weak pw => async move {
-                while let Ok(msg) = receiver.recv().await {
-                    match msg {
-                        MInfoUpdateMessage::Duration(d) => pw.on_duration_updated(&d),
-                        MInfoUpdateMessage::PositionUpdate(p)=>pw.on_position_updated(&p)
-                    }
-                }
-            }));
-
-            player.message_bus().add_signal_watch();
-            player.message_bus().connect_message(None, {
-                move |_bus, msg| {
+                use futures_util::stream::StreamExt;
+                while let Some(msg) = pstream.next().await {
                     use gst::MessageView::*;
                     use gstplay::PlayMessage;
                     match msg.view() {
-                        Application(_) => match gstplay::PlayMessage::parse(msg).unwrap() {
-                            PlayMessage::DurationChanged { duration } => sender
-                                .send_blocking(MInfoUpdateMessage::Duration(duration))
-                                .expect("The async channel must be open"),
-                            PlayMessage::PositionUpdated { position } => sender
-                                .send_blocking(MInfoUpdateMessage::PositionUpdate(position))
-                                .expect("The async channel must be open"),
+                        Application(_) => match gstplay::PlayMessage::parse(&msg).unwrap() {
+                            PlayMessage::DurationChanged { duration } => pw.on_duration_updated(&duration),
+                            PlayMessage::PositionUpdated { position } => pw.on_position_updated(&position),
                             _ => (),
                         },
-                        _ => (),
+                        _ => unreachable!(),
                     }
                 }
-            });
+            }));
         }
 
         pub(super) fn enable_controls(&self, enabled: bool) {
@@ -198,7 +181,8 @@ mod private {
         }
 
         pub(super) fn update_clock_label(&self, clocktime: &gst::ClockTime) {
-            self.clock_label.set_text(&format!("{:.0}", clocktime.display()));
+            self.clock_label
+                .set_text(&format!("{:.0}", clocktime.display()));
         }
     }
 
@@ -356,8 +340,8 @@ impl PlayerWindow {
     }
 
     fn on_slider_change_value(&self, val: f64) {
-        let pos=gst::ClockTime::from_seconds_f64(val);
-        let player=self.imp().get_player();
+        let pos = gst::ClockTime::from_seconds_f64(val);
+        let player = self.imp().get_player();
         self.imp().update_clock_label(&pos);
         player.seek(pos);
     }
